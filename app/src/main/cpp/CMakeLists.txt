@@ -30,7 +30,16 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
     src/crypto.c
     src/storage.c
     src/util.c
-    src/passwdmngr.c)
+    src/passwdmngr.c
+    src/cJSON.c)
+
+include_directories(include)
+
+add_library(sodium SHARED IMPORTED)
+
+set_target_properties(sodium PROPERTIES IMPORTED_LOCATION
+    ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libsodium.so)
+
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
@@ -38,4 +47,5 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 target_link_libraries(${CMAKE_PROJECT_NAME}
     # List libraries link to the target library
     android
+    sodium
     log)

@@ -17,6 +17,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        println(Native.genPasswd(10, "./%$#@&*^", digits = true, uppers = true, lowers = true))
         setContent {
             PasswordManagerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->

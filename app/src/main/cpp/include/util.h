@@ -18,6 +18,10 @@ extern const char PATH_SEPARATOR;
 #define is_alpha(c) ((c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a))
 #define is_horizontal_space(c) (c == ' ' || c == '\t')
 
+#ifndef MAX
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
 enum ErrorType { WARN_D, NONFATAL_D, FATAL_D };
 
 enum LogLevel { LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };

@@ -1,7 +1,6 @@
-#include "../include/crypto.h"
-#include "../include/storage.h"
-#include "../include/util.h"
-#include <openssl/evp.h>
+#include "crypto.h"
+#include "storage.h"
+#include "util.h"
 #include <sodium.h>
 #include <string.h>
 #include <stdlib.h>
@@ -76,22 +75,10 @@ char *hash_uname(const char *uname) {
 }
 
 uint8_t *sha_256_hash(uint8_t *data, size_t len) {
-    uint8_t *hash_buf = ec_malloc(32);
-    uint32_t out_len;
+    uint8_t *hash_buf = ec_malloc(crypto_hash_sha256_BYTES);
+    if (!hash_buf) return NULL;
 
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-
-    if (!ctx)
-        return NULL;
-
-    if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1 || EVP_DigestUpdate(ctx, data, len) != 1 ||
-        EVP_DigestFinal_ex(ctx, hash_buf, &out_len) != 1) {
-        EVP_MD_CTX_free(ctx);
-        return NULL;
-    }
-
-    EVP_MD_CTX_free(ctx);
-
+    crypto_hash_sha256(hash_buf, data, len);
     return hash_buf;
 }
 
@@ -182,64 +169,56 @@ char *gen_passwd(int len, char *special, bool digits, bool uppers, bool lowers) 
     return out;
 }
 
-int aes_gcm_encrypt(uint8_t *plaintext, int plaintext_len, uint8_t *key, uint8_t *iv, int iv_len, uint8_t *ciphertext,
-                    uint8_t *tag) {
-    X(iv_len);
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    int             len, ciphertext_len;
+int aes_gcm_encrypt(
+        const uint8_t *plaintext, uint64_t plaintext_len,
+        const uint8_t *key,
+        const uint8_t *iv, uint64_t iv_len,
+        uint8_t *ciphertext,
+        uint8_t *tag
+) {
+    uint64_t ciphertext_len;
 
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-    EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv);
+    crypto_aead_aes256gcm_encrypt(
+            ciphertext, &ciphertext_len,
+            plaintext, plaintext_len,
+            NULL, 0,                // no additional data
+            NULL,                   // no secret nonce
+            iv,                     // IV / nonce
+            key
+    );
 
-    EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len);
-    ciphertext_len = len;
+    // libsodium appends tag to ciphertext; extract last 16 bytes
+    memcpy(tag, ciphertext + ciphertext_len - crypto_aead_aes256gcm_ABYTES,
+           crypto_aead_aes256gcm_ABYTES);
 
-    EVP_EncryptFinal_ex(ctx, ciphertext + len, &len);
-    ciphertext_len += len;
-
-    EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag);
-
-    EVP_CIPHER_CTX_free(ctx);
-    return ciphertext_len;
+    return ciphertext_len >= 0 ? (int)ciphertext_len - TAG_LEN : (int)ciphertext_len;
 }
 
-int aes_gcm_decrypt(uint8_t *ciphertext, int ciphertext_len, uint8_t *key, uint8_t *iv, int iv_len, uint8_t *tag,
-                    uint8_t *plaintext) {
-    X(iv_len);
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    int             len, plaintext_len;
+int aes_gcm_decrypt(
+        const uint8_t *ciphertext, uint64_t ciphertext_len,
+        const uint8_t *key,
+        const uint8_t *iv, uint64_t iv_len,
+        const uint8_t *tag,
+        uint8_t *plaintext
+) {
+    uint64_t plaintext_len;
+    uint8_t *combined = ec_malloc(ciphertext_len + crypto_aead_aes256gcm_ABYTES);
 
-    if (!ctx)
-        return -1;
+    // libsodium expects tag appended to ciphertext
+    memcpy(combined, ciphertext, ciphertext_len);
+    memcpy(combined + ciphertext_len, tag, crypto_aead_aes256gcm_ABYTES);
 
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
+    int result = crypto_aead_aes256gcm_decrypt(
+            plaintext, &plaintext_len,
+            NULL,
+            combined, ciphertext_len + crypto_aead_aes256gcm_ABYTES,
+            NULL, 0,
+            iv,
+            key
+    );
 
-    if (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
+    free(combined);
 
-    if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
-    plaintext_len = len;
-
-    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, tag) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
-
-    if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
-
-    plaintext_len += len;
-    EVP_CIPHER_CTX_free(ctx);
-
-    return plaintext_len;
+    if (result != 0) return -1; // authentication failed
+    return (int)plaintext_len;
 }

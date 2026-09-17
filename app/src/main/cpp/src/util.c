@@ -4,6 +4,10 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <android/log.h>
 
 #ifdef _WIN32
 const char PATH_SEPARATOR = '\\';
@@ -50,65 +54,52 @@ char *util_get_accounts_file() {
     return ret;
 }
 
-int dir_exists(const char *path) {
-    return g_file_test(path, G_FILE_TEST_IS_DIR);
-}
+//int dir_exists(const char *path) {
+//    return g_file_test(path, G_FILE_TEST_IS_DIR);
+//}
 
-bool delete_recursive(const char *path, GError **error) {
-    GFile *dir = g_file_new_for_path(path);
+bool delete_recursive(const char *path) {
+    struct stat st;
 
-    // Check if directory exists
-    if (!g_file_query_exists(dir, NULL)) {
-        g_object_unref(dir);
+    // If path doesn't exist, treat as success
+    if (stat(path, &st) != 0) {
         return true;
     }
 
-    // Enumerate children
-    GFileEnumerator *enumerator = g_file_enumerate_children(
-        dir, G_FILE_ATTRIBUTE_STANDARD_NAME "," G_FILE_ATTRIBUTE_STANDARD_TYPE, G_FILE_QUERY_INFO_NONE, NULL, error);
+    // If it's a file, delete it
+    if (!S_ISDIR(st.st_mode)) {
+        return unlink(path) == 0;
+    }
 
-    if (!enumerator) {
-        g_object_unref(dir);
+    // It's a directory — open it
+    DIR *dir = opendir(path);
+    if (!dir) {
         return false;
     }
 
-    GFileInfo *info;
-    while ((info = g_file_enumerator_next_file(enumerator, NULL, error))) {
-        const char *name = g_file_info_get_name(info);
-        GFileType   type = g_file_info_get_file_type(info);
-
-        GFile *child = g_file_get_child(dir, name);
-
-        if (type == G_FILE_TYPE_DIRECTORY) {
-            // Recursively delete subdirectories
-            if (!delete_recursive(g_file_get_path(child), error)) {
-                g_object_unref(child);
-                g_object_unref(info);
-                g_object_unref(enumerator);
-                g_object_unref(dir);
-                return false;
-            }
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        // Skip "." and ".."
+        if (strcmp(entry->d_name, ".") == 0 ||
+            strcmp(entry->d_name, "..") == 0) {
+            continue;
         }
 
-        // Delete file or now-empty directory
-        if (!g_file_delete(child, NULL, error)) {
-            g_object_unref(child);
-            g_object_unref(info);
-            g_object_unref(enumerator);
-            g_object_unref(dir);
+        // Build full child path
+        char child_path[PATH_MAX];
+        snprintf(child_path, sizeof(child_path), "%s/%s", path, entry->d_name);
+
+        // Recurse
+        if (!delete_recursive(child_path)) {
+            closedir(dir);
             return false;
         }
-
-        g_object_unref(child);
-        g_object_unref(info);
     }
 
-    g_object_unref(enumerator);
+    closedir(dir);
 
-    // Delete the directory itself
-    bool ok = g_file_delete(dir, NULL, error);
-    g_object_unref(dir);
-    return ok;
+    // Delete the now-empty directory
+    return rmdir(path) == 0;
 }
 
 void util_assert(int cond, char *fail_msg) {
@@ -116,6 +107,27 @@ void util_assert(int cond, char *fail_msg) {
         util_log(LOG_FATAL, "Assertion failed: %s", fail_msg);
         exit(2); // failed assertion
     }
+}
+
+static char *vprintf_dup(const char *fmt, va_list args) {
+    va_list args_copy;
+    va_copy(args_copy, args);
+
+    int req_size = vsnprintf(NULL, 0, fmt, args_copy);
+    va_end(args_copy);
+
+    if (req_size < 0) {
+        return NULL;
+    }
+
+    char *buf = ec_malloc(req_size + 1);
+    if (!buf) {
+        return NULL;
+    }
+
+    vsnprintf(buf, req_size + 1, fmt, args);
+
+    return buf;
 }
 
 void util_log(LogLevel level, const char *fmt, ...) {
@@ -128,20 +140,30 @@ void util_log(LogLevel level, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    char *msg = g_strdup_vprintf(fmt, args);
+    char *msg = vprintf_dup(fmt, args);
 
     char *prefix = NULL;
 
-    if (level == LOG_DEBUG)
-        prefix = "[passwdmngr/DEBUG]: ";
-    else if (level == LOG_INFO)
-        prefix = "[passwdmngr/INFO]: ";
-    else if (level == LOG_WARN)
-        prefix = "[passwdmngr/WARNING]: ";
-    else if (level == LOG_ERROR)
-        prefix = "[passwdmngr/ERROR]: ";
-    else
-        prefix = "[passwdmngr/FATAL ERROR]: ";
+    switch (level) {
+        case LOG_DEBUG:
+            prefix = "[passwdmngr/DEBUG]: ";
+            __android_log_vprint(ANDROID_LOG_DEBUG, "passwdmngr", fmt, args);
+        case LOG_INFO:
+            prefix = "[passwdmngr/INFO]: ";
+            __android_log_vprint(ANDROID_LOG_INFO, "passwdmngr", fmt, args);
+        case LOG_WARN:
+            prefix = "[passwdmngr/WARNING]: ";
+            __android_log_vprint(ANDROID_LOG_WARN, "passwdmngr", fmt, args);
+        case LOG_ERROR:
+            prefix = "[passwdmngr/ERROR]: ";
+            __android_log_vprint(ANDROID_LOG_ERROR, "passwdmngr", fmt, args);
+        case LOG_FATAL:
+            prefix = "[passwdmngr/FATAL ERROR]: ";
+            __android_log_vprint(ANDROID_LOG_FATAL, "passwdmngr", fmt, args);
+        default:
+            prefix = "[passwdmgnr/UNKNOWN]: ";
+            __android_log_vprint(ANDROID_LOG_UNKNOWN, "passwdmngr", fmt, args);
+    }
 
     time_t     now      = time(NULL);
     struct tm *log_time = localtime(&now);
@@ -153,7 +175,7 @@ void util_log(LogLevel level, const char *fmt, ...) {
     char *stdout_msg = ec_malloc(strlen(msg) + strlen(prefix) + 1);
     sprintf(log_msg, "(%s) %s%s", time_buf, prefix, msg);
     sprintf(stdout_msg, "%s%s", prefix, msg);
-    g_free(msg);
+    free(msg);
 
     if (level > LOG_WARN)
         fprintf(stderr, "%s\n", stdout_msg);
