@@ -1,5 +1,6 @@
 package com.samuelf09.passwdmngr
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -8,8 +9,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,18 +23,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.samuelf09.passwdmngr.ui.navigation.Routes
+import com.samuelf09.passwdmngr.ui.screens.CreateAccountScreen
 import com.samuelf09.passwdmngr.ui.screens.LoginScreen
+import com.samuelf09.passwdmngr.ui.screens.MainAppScreen
 import com.samuelf09.passwdmngr.ui.theme.PasswordManagerTheme
 
 class MainActivity : ComponentActivity() {
-
-    fun runLogin() {
-
-    }
-
-    fun runCreateAccount() {
-
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -58,7 +62,40 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PasswordManagerTheme {
-                LoginScreen(onLogin = { runLogin() }, onCreateAccount = { runCreateAccount() })
+                AppNavHost()
+            }
+        }
+    }
+
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+    @Composable
+    fun AppNavHost() {
+        val navController = rememberNavController()
+
+        Scaffold { padding ->
+            NavHost(
+                navController = navController,
+                startDestination = Routes.Login,
+                enterTransition = { fadeIn() },
+                exitTransition = { fadeOut() }
+            ) {
+                composable(Routes.Login) {
+                    LoginScreen(
+                        onLoginSuccess = { navController.navigate(Routes.MainApp) },
+                        onCreateAccount = { navController.navigate(Routes.CreateAccount) }
+                    )
+                }
+
+                composable(Routes.CreateAccount) {
+                    CreateAccountScreen(
+                        onAccountCreated = { navController.navigate(Routes.MainApp) },
+                        onCancel = { navController.navigate(Routes.Login) }
+                    )
+                }
+
+                composable(Routes.MainApp) {
+                    MainAppScreen()
+                }
             }
         }
     }

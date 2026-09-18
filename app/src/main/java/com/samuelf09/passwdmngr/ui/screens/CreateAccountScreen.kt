@@ -15,18 +15,18 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.autofill.ContentDataType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -45,30 +44,32 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.samuelf09.passwdmngr.R
-import com.samuelf09.passwdmngr.ui.navigation.Routes
+import com.samuelf09.passwdmngr.viewmodel.CreateAccountViewModel
 import com.samuelf09.passwdmngr.viewmodel.LoginViewModel
 
 @Composable
-fun LoginScreen(
-    onLoginSuccess: () -> Unit,
-    onCreateAccount: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+fun CreateAccountScreen(
+    onAccountCreated: () -> Unit,
+    onCancel: () -> Unit,
+    viewModel: CreateAccountViewModel = viewModel()
 ) {
+
     val focusManager = LocalFocusManager.current;
 
     val username = viewModel.username
     val password = viewModel.password
+    val confirmPassword = viewModel.confirmPassword
 
     val navEvent by viewModel.navigation.collectAsState()
 
     LaunchedEffect(navEvent) {
         when (navEvent) {
-            LoginViewModel.NavigationEvent.ToMain -> {
-                onLoginSuccess()
+            CreateAccountViewModel.NavigationEvent.ToMain -> {
+                onAccountCreated()
                 viewModel.clearNavigation()
             }
-            LoginViewModel.NavigationEvent.ToCreateAccount -> {
-                onCreateAccount()
+            CreateAccountViewModel.NavigationEvent.ToLogin -> {
+                onCancel()
                 viewModel.clearNavigation()
             }
             null -> Unit
@@ -88,7 +89,6 @@ fun LoginScreen(
             },
         contentAlignment = Alignment.Center
     ) {
-
         Card(
             modifier = Modifier
                 .widthIn(max = 360.dp)
@@ -116,7 +116,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = username,
                     onValueChange = viewModel::onUsernameChanged,
-                    placeholder = { Text("Enter username…") },
+                    placeholder = { Text("Enter new username…") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -126,7 +126,34 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = password,
                     onValueChange = viewModel::onPasswordChanged,
-                    placeholder = { Text("Enter password…") },
+                    placeholder = { Text("Enter new password…") },
+                    singleLine = true,
+                    visualTransformation =
+                        if (showPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Password
+                    ),
+                    keyboardActions = KeyboardActions.Default,
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword)
+                                    Icons.Default.Visibility
+                                else Icons.Default.VisibilityOff,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                )
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = viewModel::onConfirmPasswordChanged,
+                    placeholder = { Text("Confirm password…") },
                     singleLine = true,
                     visualTransformation =
                         if (showPassword) VisualTransformation.None
@@ -151,17 +178,17 @@ fun LoginScreen(
                 )
 
                 Button(
-                    onClick = viewModel::onLoginClicked,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Login")
-                }
-
-                TextButton(
                     onClick = viewModel::onCreateAccountClicked,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Create new account")
+                    Text("Create Account")
+                }
+
+                TextButton(
+                    onClick = viewModel::onCancelClicked,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cancel")
                 }
             }
         }
