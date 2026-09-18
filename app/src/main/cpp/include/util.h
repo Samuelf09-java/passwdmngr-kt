@@ -4,9 +4,9 @@
 #include <stdbool.h>
 
 extern const char PATH_SEPARATOR;
+extern char *app_dir;
 
 #define X(x) (void)(x) // suppress 'unused parameter' compiler warnings with void cast
-#define UNIMPLEMENTED util_error("This function is currently unimplemented") // mark a function as unimplemented
 
 #define is_digit(c)                                                                                                    \
     (c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' ||       \
@@ -22,18 +22,15 @@ extern const char PATH_SEPARATOR;
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
-enum ErrorType { WARN_D, NONFATAL_D, FATAL_D };
-
 enum LogLevel { LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 
 typedef enum ErrorType ErrorType;
 typedef enum LogLevel  LogLevel;
 
-char *util_get_app_dir();
 char *util_get_logfile();
 char *util_get_prefs_file();
 char *util_get_accounts_file();
-int   dir_exists(const char *path);
+bool  dir_exists(const char *path);
 
 void util_assert(int cond, char *fail_msg);
 

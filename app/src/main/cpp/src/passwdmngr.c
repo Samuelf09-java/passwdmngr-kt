@@ -4,6 +4,8 @@
 #include <jni.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sodium.h>
+#include <sys/stat.h>
 
 #define GET_STR(jstring) (*env)->GetStringUTFChars(env, jstring, 0)
 #define FREE_STR(jstring, string) (*env)->ReleaseStringUTFChars(env, jstring, string)
@@ -67,6 +69,54 @@ jobject build_vault_read_result(JNIEnv *env, PasswdEntry *out_entries, VaultHead
                                                "([Lcom/samuelf09/passwdmngr/PasswdEntry;Lcom/samuelf09/passwdmngr/VaultHeader;)V");
 
     return (*env)->NewObject(env, resultCls, resultCtor, jentries, jhdr);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_samuelf09_passwdmngr_Native_appInit(JNIEnv *env, jobject thiz, jstring jdata_dir)
+{
+    char *data_dir = (char *)GET_STR(jdata_dir);
+    app_dir = strdup(data_dir);
+    FREE_STR(jdata_dir, data_dir);
+    if (!app_dir) return false;
+
+    util_log(LOG_DEBUG, "app_dir: %s", app_dir);
+
+    if (sodium_init() < 0) return false;
+
+    char *vaults_path = ec_malloc(strlen(app_dir) + strlen("/vaults") + 1);
+    sprintf(vaults_path, "%s/vaults", app_dir);
+    if (!dir_exists(vaults_path) && !mkdir(vaults_path, 0700)) {
+        free(vaults_path);
+        return false;
+    }
+    free(vaults_path);
+
+    char *pref_path = ec_malloc(strlen(app_dir) + strlen("/preferences.json") + 1);
+    char *accounts_path = ec_malloc(strlen(app_dir) + strlen("/accounts.bin") + 1);
+    char *log_path = ec_malloc(strlen(app_dir) + strlen("/passwdmngr.log") + 1);
+    sprintf(pref_path, "%s/preferences.json", app_dir);
+    sprintf(accounts_path, "%s/accounts.bin", app_dir);
+    sprintf(log_path, "%s/passwdmngr.log", app_dir);
+    FILE *fp;
+    fp = fopen(pref_path, "r");
+    if (!fp)
+        init_pref_json(pref_path);
+    else
+        fclose(fp);
+    fp = fopen(accounts_path, "r");
+    if (!fp) {
+        if (!init_accounts()) {
+            util_log(LOG_ERROR, "init_accounts() failed!");
+            fclose(fp);
+            return false;
+        }
+    } else fclose(fp);
+    fp = fopen(log_path, "a");
+    if (fp) fclose(fp);
+
+    util_log(LOG_INFO, "App init successful");
+
+    return true;
 }
 
 // CRYPTO.H
@@ -862,7 +912,7 @@ Java_com_samuelf09_passwdmngr_Native_storageReadVaultWithKey(
 
     jobject result = build_vault_read_result(env, out_entries, out_hdr);
 
-    wipe_passwd_entries(out_entries, out_hdr->num_entries);
+    wipe_passwd_entries(out_entries, (int)out_hdr->num_entries);
     free(out_hdr);
 
     return result;
@@ -889,7 +939,7 @@ Java_com_samuelf09_passwdmngr_Native_storageReadVault(
 
     jobject result = build_vault_read_result(env, out_entries, out_hdr);
 
-    wipe_passwd_entries(out_entries, out_hdr->num_entries);
+    wipe_passwd_entries(out_entries, (int)out_hdr->num_entries);
     free(out_hdr);
 
     return result;
@@ -1122,14 +1172,6 @@ Java_com_samuelf09_passwdmngr_Native_wipePasswdEntries(
 }
 
 // UTIL.H
-
-JNIEXPORT jstring JNICALL
-Java_com_samuelf09_passwdmngr_Native_utilGetAppDir(
-    JNIEnv *env, jclass clazz)
-{
-    char *app_dir = util_get_app_dir();
-    return app_dir ? (*env)->NewStringUTF(env, app_dir) : NULL;
-}
 
 JNIEXPORT jstring JNICALL
 Java_com_samuelf09_passwdmngr_Native_utilGetLogfile(

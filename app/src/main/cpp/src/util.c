@@ -15,48 +15,34 @@ const char PATH_SEPARATOR = '\\';
 const char PATH_SEPARATOR = '/';
 #endif
 
-char *util_get_app_dir() {
-    char *home = getenv("HOME");
-    char *root;
-
-    if (!home)
-        return NULL;
-    root = ec_malloc(strlen(home) + strlen("/.local/share/passwdmngr/") + 1);
-    if (!root) {
-        util_log(LOG_ERROR, "Failed to allocate memory for root path");
-        return NULL;
-    }
-    sprintf(root, "%s/.local/share/passwdmngr/", home);
-    return root;
-}
+char *app_dir = NULL;
 
 char *util_get_logfile() {
-    char *basedir = util_get_app_dir();
-    char *ret     = ec_malloc(strlen(basedir) + strlen("passwdmngr.log") + 1);
-    sprintf(ret, "%spasswdmngr.log", basedir);
-    free(basedir);
+    char *ret     = ec_malloc(strlen(app_dir) + strlen("passwdmngr.log") + 1);
+    sprintf(ret, "%spasswdmngr.log", app_dir);
     return ret;
 }
 
 char *util_get_prefs_file() {
-    char *basedir = util_get_app_dir();
-    char *ret     = ec_malloc(strlen(basedir) + strlen("preferences.json") + 1);
-    sprintf(ret, "%spreferences.json", basedir);
-    free(basedir);
+    char *ret     = ec_malloc(strlen(app_dir) + strlen("preferences.json") + 1);
+    sprintf(ret, "%spreferences.json", app_dir);
     return ret;
 }
 
 char *util_get_accounts_file() {
-    char *basedir = util_get_app_dir();
-    char *ret     = ec_malloc(strlen(basedir) + strlen("accounts.bin") + 1);
-    sprintf(ret, "%saccounts.bin", basedir);
-    free(basedir);
+    char *ret     = ec_malloc(strlen(app_dir) + strlen("accounts.bin") + 1);
+    sprintf(ret, "%saccounts.bin", app_dir);
     return ret;
 }
 
-//int dir_exists(const char *path) {
-//    return g_file_test(path, G_FILE_TEST_IS_DIR);
-//}
+bool dir_exists(const char *path) {
+    struct stat st;
+
+    if (stat(path, &st) == 0)
+        return S_ISDIR(st.st_mode);
+
+    return false;
+}
 
 bool delete_recursive(const char *path) {
     struct stat st;
@@ -132,11 +118,6 @@ static char *vprintf_dup(const char *fmt, va_list args) {
 
 void util_log(LogLevel level, const char *fmt, ...) {
 
-#ifndef DEBUGMSG // set by Makefile to enable debugging
-    if (level == LOG_DEBUG)
-        return;
-#endif
-
     va_list args;
     va_start(args, fmt);
 
@@ -148,18 +129,23 @@ void util_log(LogLevel level, const char *fmt, ...) {
         case LOG_DEBUG:
             prefix = "[passwdmngr/DEBUG]: ";
             __android_log_vprint(ANDROID_LOG_DEBUG, "passwdmngr", fmt, args);
+            break;
         case LOG_INFO:
             prefix = "[passwdmngr/INFO]: ";
             __android_log_vprint(ANDROID_LOG_INFO, "passwdmngr", fmt, args);
+            break;
         case LOG_WARN:
             prefix = "[passwdmngr/WARNING]: ";
             __android_log_vprint(ANDROID_LOG_WARN, "passwdmngr", fmt, args);
+            break;
         case LOG_ERROR:
             prefix = "[passwdmngr/ERROR]: ";
             __android_log_vprint(ANDROID_LOG_ERROR, "passwdmngr", fmt, args);
+            break;
         case LOG_FATAL:
             prefix = "[passwdmngr/FATAL ERROR]: ";
             __android_log_vprint(ANDROID_LOG_FATAL, "passwdmngr", fmt, args);
+            break;
         default:
             prefix = "[passwdmgnr/UNKNOWN]: ";
             __android_log_vprint(ANDROID_LOG_UNKNOWN, "passwdmngr", fmt, args);

@@ -41,6 +41,8 @@ object Native {
         System.loadLibrary("passwdmngr-core")
     }
 
+    external fun appInit(dataDir: String): Boolean
+
     // CRYPTO.H
     external fun verifyAccount(uname: String, passwd: String): Boolean
 
@@ -146,7 +148,6 @@ object Native {
 
     // UTIL.H
 
-    external fun utilGetAppDir(): String?
     external fun utilGetLogfile(): String?
     external fun utilGetPrefsFile(): String?
     external fun utilGetAccountsFile(): String?

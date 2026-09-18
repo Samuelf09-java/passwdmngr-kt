@@ -104,7 +104,7 @@ bool init_accounts() {
     hdr->num_accounts = 0;
 
     uint8_t *hash =
-        sha_256_hash((uint8_t *)(hdr + sizeof(AccountHeader) - 10 - HASH_LEN), sizeof(AccountHeader) - 10 - HASH_LEN);
+        sha_256_hash((uint8_t *)((uint8_t *)hdr + sizeof(AccountHeader) - 10 - HASH_LEN), sizeof(AccountHeader) - 10 - HASH_LEN);
     if (!util_check_ptr(hash, "Failed to hash accounts header")) {
         free(hdr);
         return false;
@@ -490,7 +490,6 @@ char *storage_get_user_vault_path(char *uname) {
     if (!util_check_ptr(uname_hash, "Failed to hash username"))
         return NULL;
 
-    char *app_dir = util_get_app_dir();
     if (!util_check_ptr(app_dir, "Failed to get app dir")) {
         free(uname_hash);
         return NULL;
@@ -499,7 +498,6 @@ char *storage_get_user_vault_path(char *uname) {
     int   path_len = strlen(app_dir) + strlen("vaults") + 1 + strlen(uname_hash) + strlen(".pwmngr") + 1;
     char *path     = ec_malloc(path_len);
     sprintf(path, "%svaults%c%s.pwmngr", app_dir, PATH_SEPARATOR, uname_hash);
-    free(app_dir);
     free(uname_hash);
     return path;
 }
