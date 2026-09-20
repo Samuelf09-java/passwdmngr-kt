@@ -1,23 +1,57 @@
 package com.samuelf09.passwdmngr.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.samuelf09.passwdmngr.PasswdEntry
 import com.samuelf09.passwdmngr.viewmodel.MainViewModel
+
+@Composable
+fun SidebarItem(
+    entry: PasswdEntry,
+    selected: Boolean,
+    onClick: () -> Unit) {
+    val background = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+    } else {
+        Color.Transparent
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = entry.service ?: "",
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
 
 @Composable
 fun Sidebar(
@@ -39,11 +73,11 @@ fun Sidebar(
 
         if (!collapsed) {
             entries.forEach { entry ->
-//                SidebarItem(
-//                    entry = entry,
-//                    selected = entry.id == selectedEntryId,
-//                    onClick = { onEntrySelected(entry.id) }
-//                )
+                SidebarItem(
+                    entry = entry,
+                    selected = entry.id == selectedEntryId,
+                    onClick = { onEntrySelected(entry.id) }
+                )
             }
         }
     }
@@ -58,7 +92,7 @@ fun MainAppScreen(
     Row(Modifier.fillMaxSize()) {
 
         Sidebar(
-            entries = viewModel.entries,
+            entries = viewModel.entries.toList(),
             selectedEntryId = selectedEntryId,
             onEntrySelected = viewModel::selectEntry,
             collapsed = viewModel.sidebarCollapsed,

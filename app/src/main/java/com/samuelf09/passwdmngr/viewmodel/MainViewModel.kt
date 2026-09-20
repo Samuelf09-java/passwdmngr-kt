@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.samuelf09.passwdmngr.Native
 import com.samuelf09.passwdmngr.PasswdEntry
 
 class MainViewModel : ViewModel() {
@@ -14,7 +15,7 @@ class MainViewModel : ViewModel() {
     var sidebarCollapsed by mutableStateOf(true)
     private set
 
-    val entries: MutableList<PasswdEntry> = mutableListOf()
+    val entries: Array<PasswdEntry> = Native.storageGetEntries() ?: emptyArray()
 
     fun selectEntry(id: Int) {
         selectedEntryId = id

@@ -60,6 +60,8 @@ fun CreateAccountScreen(
     val password = viewModel.password
     val confirmPassword = viewModel.confirmPassword
 
+    val errorMessage = viewModel.errorMessage
+
     val navEvent by viewModel.navigation.collectAsState()
 
     LaunchedEffect(navEvent) {
@@ -176,6 +178,15 @@ fun CreateAccountScreen(
                         }
                     }
                 )
+
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
 
                 Button(
                     onClick = viewModel::onCreateAccountClicked,

@@ -86,6 +86,8 @@ bool derive_vault_key(const char *passwd, const uint8_t *salt, uint8_t *key_out,
     if (key_len != 32)
         return false;
 
+    printf("Got passwd %s, salt at %p, key_out %p", passwd, salt, key_out);
+
     /*
      * Because both the password hash in accounts.bin and the encryption key for the vault
      * are generated in the same way, we add an extra char to the password used here to ensure

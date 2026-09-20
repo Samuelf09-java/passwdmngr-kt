@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.samuelf09.passwdmngr.Native
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -50,7 +51,14 @@ class CreateAccountViewModel: ViewModel() {
             return
         }
 
-        // Native.createAccount(username, password)
+        if (!Native.createNewAccount(username, password)) {
+            errorMessage = "Failed to create new account"
+            // TODO: use numerical codes to determine cause of failure
+            return
+        }
+
+        // TODO: setup as necessary
+        _navigation.value = NavigationEvent.ToMain
     }
 
     fun onCancelClicked() {

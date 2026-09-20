@@ -31,6 +31,7 @@ char *util_get_logfile();
 char *util_get_prefs_file();
 char *util_get_accounts_file();
 bool  dir_exists(const char *path);
+bool  delete_recursive(const char *path);
 
 void util_assert(int cond, char *fail_msg);
 

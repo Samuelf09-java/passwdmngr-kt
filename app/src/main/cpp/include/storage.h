@@ -119,6 +119,7 @@ bool storage_write_user_vault();
 
 int          storage_get_next_id();
 PasswdEntry *storage_get_entry(int id);
+PasswdEntry *storage_get_entries();
 
 bool add_entry(PasswdEntry *entry);
 bool delete_entry(int id);

@@ -42,6 +42,7 @@ object Native {
     }
 
     external fun appInit(dataDir: String): Boolean
+    external fun getActiveUser(): String?
 
     // CRYPTO.H
     external fun verifyAccount(uname: String, passwd: String): Boolean
@@ -139,6 +140,7 @@ object Native {
 
     external fun storageGetNextId(): Int
     external fun storageGetEntry(id: Int): PasswdEntry?
+    external fun storageGetEntries(): Array<PasswdEntry>?
 
     external fun addEntry(entry: PasswdEntry): Boolean
     external fun deleteEntry(id: Int): Boolean

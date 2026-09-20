@@ -59,6 +59,8 @@ fun LoginScreen(
     val username = viewModel.username
     val password = viewModel.password
 
+    val errorMessage = viewModel.errorMessage
+
     val navEvent by viewModel.navigation.collectAsState()
 
     LaunchedEffect(navEvent) {
@@ -149,6 +151,15 @@ fun LoginScreen(
                         }
                     }
                 )
+
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
 
                 Button(
                     onClick = viewModel::onLoginClicked,

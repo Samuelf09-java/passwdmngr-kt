@@ -10,9 +10,6 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class LoginViewModel : ViewModel() {
 
-    val maxUnameLength = 32
-    val maxPasswdLength = 32
-
     var username by mutableStateOf("")
         private set
 
@@ -21,6 +18,8 @@ class LoginViewModel : ViewModel() {
 
     var errorMessage by mutableStateOf<String?>(null)
         private set
+
+    private fun isValidInput(input: String) = input.length in 4..32
 
     sealed class NavigationEvent {
         data object ToMain: NavigationEvent()
@@ -42,14 +41,11 @@ class LoginViewModel : ViewModel() {
     }
 
     fun onLoginClicked() {
-        if (username.isBlank() || password.isBlank() || username.length > maxUnameLength || password.length > maxPasswdLength) {
-            errorMessage = "Please enter a valid username and password"
+        if (!isValidInput(username) || !isValidInput(password) || !Native.verifyAccount(username, password)) {
+            errorMessage = "Incorrect username or password!"
             return
         }
-
-        if (Native.verifyAccount(username, password)) {
-            _navigation.value = NavigationEvent.ToMain
-        }
+        _navigation.value = NavigationEvent.ToMain
     }
 
     fun onCreateAccountClicked() {

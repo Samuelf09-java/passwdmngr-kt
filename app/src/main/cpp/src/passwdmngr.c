@@ -75,7 +75,8 @@ JNIEXPORT jboolean JNICALL
 Java_com_samuelf09_passwdmngr_Native_appInit(JNIEnv *env, jobject thiz, jstring jdata_dir)
 {
     char *data_dir = (char *)GET_STR(jdata_dir);
-    app_dir = strdup(data_dir);
+    app_dir = ec_malloc(strlen(data_dir) + 2);
+    sprintf(app_dir, "%s/", data_dir);
     FREE_STR(jdata_dir, data_dir);
     if (!app_dir) return false;
 
@@ -85,7 +86,7 @@ Java_com_samuelf09_passwdmngr_Native_appInit(JNIEnv *env, jobject thiz, jstring 
 
     char *vaults_path = ec_malloc(strlen(app_dir) + strlen("/vaults") + 1);
     sprintf(vaults_path, "%s/vaults", app_dir);
-    if (!dir_exists(vaults_path) && !mkdir(vaults_path, 0700)) {
+    if (!dir_exists(vaults_path) && mkdir(vaults_path, 0700)) {
         free(vaults_path);
         return false;
     }
@@ -107,7 +108,6 @@ Java_com_samuelf09_passwdmngr_Native_appInit(JNIEnv *env, jobject thiz, jstring 
     if (!fp) {
         if (!init_accounts()) {
             util_log(LOG_ERROR, "init_accounts() failed!");
-            fclose(fp);
             return false;
         }
     } else fclose(fp);
@@ -117,6 +117,14 @@ Java_com_samuelf09_passwdmngr_Native_appInit(JNIEnv *env, jobject thiz, jstring 
     util_log(LOG_INFO, "App init successful");
 
     return true;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_samuelf09_passwdmngr_Native_getActiveUser(JNIEnv *env, jclass clazz)
+{
+
+jstring jhash = username ? (*env)->NewStringUTF(env, username) : NULL;
+return jhash;
 }
 
 // CRYPTO.H
@@ -1051,6 +1059,61 @@ Java_com_samuelf09_passwdmngr_Native_storageGetEntry(
     jstring jnotes = e->notes ? (*env)->NewStringUTF(env, e->notes) : NULL;
     jobject jentry = (*env)->NewObject(env, entryCls, entryCtor, (jint)e->id, jservice, jusername, jpassword, jnotes);
     return jentry;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_samuelf09_passwdmngr_Native_storageGetEntries(JNIEnv *env, jobject thiz)
+{
+    if (num_entries < 0) return NULL;
+
+    jclass entryCls = (*env)->FindClass(env, "com/samuelf09/passwdmngr/PasswdEntry");
+    if (!entryCls)
+    {
+        util_log(LOG_ERROR, "Failed to find PasswdEntry class!");
+        return NULL;
+    }
+
+    jmethodID ctor = (*env)->GetMethodID(env, entryCls, "<init>",
+                                         "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+    if (!ctor)
+    {
+        util_log(LOG_ERROR, "Failed to find PasswdEntry constructor!");
+        return NULL;
+    }
+
+    jobjectArray arr = (*env)->NewObjectArray(env, num_entries, entryCls, NULL);
+    if (!arr)
+    {
+        util_log(LOG_ERROR, "Failed to allocate PasswdEntry array!");
+        return NULL;
+    }
+
+    for (int i = 0; i < num_entries; i++)
+    {
+        int e_id = entries[i].id;
+        char *e_service = entries[i].service;
+        char *e_username = entries[i].username;
+        char *e_password = entries[i].password;
+        char *e_notes = entries[i].notes;
+
+        jstring jservice = NULL;
+        jstring jusername = NULL;
+        jstring jpassword = NULL;
+        jstring jnotes = NULL;
+        if (e_service)
+            jservice = (*env)->NewStringUTF(env, e_service);
+        if (e_username)
+            jusername = (*env)->NewStringUTF(env, e_username);
+        if (e_password)
+            jpassword = (*env)->NewStringUTF(env, e_password);
+        if (e_notes)
+            jnotes = (*env)->NewStringUTF(env, e_notes);
+
+        jobject entryObj = (*env)->NewObject(env, entryCls, ctor, (jint)e_id, jservice, jusername, jpassword, jnotes);
+        (*env)->SetObjectArrayElement(env, arr, i, entryObj);
+    }
+
+    return arr;
 }
 
 JNIEXPORT jboolean JNICALL

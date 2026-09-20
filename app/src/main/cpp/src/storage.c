@@ -337,6 +337,7 @@ bool create_new_account(char *uname, char *passwd) {
     save_accounts();
 
     username = strdup(uname);
+    tmp_passwd = strdup(passwd);
 
     char    *vault_path = storage_get_user_vault_path(uname);
     uint8_t *salt       = ec_malloc(SALT_LEN);
@@ -951,6 +952,10 @@ PasswdEntry *storage_get_entry(int id) {
 
     util_log(LOG_ERROR, "Failed to fetch password entry from id: invalid id");
     return NULL;
+}
+
+PasswdEntry *storage_get_entries() {
+
 }
 
 bool add_entry(PasswdEntry *entry) {
