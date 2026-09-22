@@ -950,12 +950,8 @@ PasswdEntry *storage_get_entry(int id) {
         if (entries[i].id == id)
             return &entries[i];
 
-    util_log(LOG_ERROR, "Failed to fetch password entry from id: invalid id");
+    util_log(LOG_ERROR, "Failed to fetch password entry from id: invalid id (%d)", id);
     return NULL;
-}
-
-PasswdEntry *storage_get_entries() {
-
 }
 
 bool add_entry(PasswdEntry *entry) {

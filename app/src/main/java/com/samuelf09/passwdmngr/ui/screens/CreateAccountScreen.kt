@@ -45,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.samuelf09.passwdmngr.R
 import com.samuelf09.passwdmngr.viewmodel.CreateAccountViewModel
-import com.samuelf09.passwdmngr.viewmodel.LoginViewModel
 
 @Composable
 fun CreateAccountScreen(

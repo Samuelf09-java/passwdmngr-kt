@@ -1,5 +1,7 @@
 package com.samuelf09.passwdmngr
 
+import android.annotation.SuppressLint
+
 data class EncryptionResult(val ciphertext: ByteArray, val tag: ByteArray)
 data class EncryptEntriesResult(val ct: ByteArray, val tag: ByteArray, val nonce: ByteArray)
 
@@ -22,6 +24,8 @@ data class PasswdEntry(
     val notes: String?
 )
 
+fun emptyPasswdEntry() = PasswdEntry(id = -1, service = "", username = "", password = "", notes = "")
+
 data class VaultHeader(
     val magic: ByteArray,
     val version: Int,
@@ -43,6 +47,9 @@ object Native {
 
     external fun appInit(dataDir: String): Boolean
     external fun getActiveUser(): String?
+    external fun setUsername(username: String)
+    external fun setTmpPasswd(password: String)
+    external fun isDuplicateEntry(entry: PasswdEntry): Boolean
 
     // CRYPTO.H
     external fun verifyAccount(uname: String, passwd: String): Boolean

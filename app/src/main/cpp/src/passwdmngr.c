@@ -123,8 +123,62 @@ JNIEXPORT jstring JNICALL
 Java_com_samuelf09_passwdmngr_Native_getActiveUser(JNIEnv *env, jclass clazz)
 {
 
-jstring jhash = username ? (*env)->NewStringUTF(env, username) : NULL;
-return jhash;
+jstring juname = username ? (*env)->NewStringUTF(env, username) : NULL;
+return juname;
+}
+
+JNIEXPORT void JNICALL
+Java_com_samuelf09_passwdmngr_Native_setUsername(
+        JNIEnv *env, jclass clazz, jstring jusername)
+{
+    char *uname = (char *)GET_STR(jusername);
+    username = strdup(uname);
+    FREE_STR(jusername, uname);
+}
+
+JNIEXPORT void JNICALL
+Java_com_samuelf09_passwdmngr_Native_setTmpPasswd(
+        JNIEnv *env, jclass clazz, jstring jpassword)
+{
+    char *tmp_passwd_ = (char *)GET_STR(jpassword);
+    tmp_passwd = strdup(tmp_passwd_);
+    FREE_STR(jpassword, tmp_passwd_);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_samuelf09_passwdmngr_Native_isDuplicateEntry(
+        JNIEnv *env, jclass clazz, jobject jentry)
+{
+    jclass entryCls = (*env)->FindClass(env, "com/samuelf09/passwdmngr/PasswdEntry");
+    jfieldID idField = (*env)->GetFieldID(env, entryCls, "id", "I");
+    jfieldID serviceField = (*env)->GetFieldID(env, entryCls, "service", "Ljava/lang/String;");
+
+    int e_id = (int)(*env)->GetIntField(env, jentry, idField);
+    jstring jservice = (jstring)(*env)->GetObjectField(env, jentry, serviceField);
+
+    char *e_service = NULL;
+
+    if (jservice)
+        e_service = (char *)GET_STR(jservice);
+
+    if (jservice)
+        FREE_STR(jservice, e_service);
+
+    if (!e_service) {
+        util_log(LOG_ERROR, "NULL service while checking for duplicate entry; id = %d", e_id);
+        return true; // because true means duplicate/something went wrong
+    }
+
+    bool res = false;
+
+    for (int i = 0; i < num_entries; i++) {
+        if (entries[i].id == e_id || !strcmp(entries[i].service, e_service)) {
+            res = true;
+            break;
+        }
+    }
+
+    return res;
 }
 
 // CRYPTO.H

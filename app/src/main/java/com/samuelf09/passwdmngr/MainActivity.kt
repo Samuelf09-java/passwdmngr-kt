@@ -9,27 +9,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.samuelf09.passwdmngr.ui.navigation.Routes
 import com.samuelf09.passwdmngr.ui.screens.CreateAccountScreen
+import com.samuelf09.passwdmngr.ui.screens.EditEntryScreen
 import com.samuelf09.passwdmngr.ui.screens.LoginScreen
-import com.samuelf09.passwdmngr.ui.screens.MainAppScreen
+import com.samuelf09.passwdmngr.ui.screens.MainScreen
 import com.samuelf09.passwdmngr.ui.theme.PasswordManagerTheme
 
 class MainActivity : ComponentActivity() {
@@ -67,7 +62,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     @Composable
     fun AppNavHost() {
         val navController = rememberNavController()
@@ -93,8 +87,35 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                composable(Routes.MainApp) {
-                    MainAppScreen()
+                composable(
+                    route = Routes.MainAppFull,
+                    arguments = listOf(navArgument("id") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    } )
+                ) {
+                    backStackEntry -> val selectedId = backStackEntry.arguments?.getInt("id")
+                    MainScreen(
+                        onAddEntry = { navController.navigate(Routes.EditEntry) },
+                        onLogout = { navController.navigate(Routes.Login) },
+                        onEditEntry = { id -> navController.navigate("${Routes.EditEntry}?entryId=$id") },
+                        selectedId = selectedId
+                    )
+                }
+
+                composable (
+                    route = Routes.EditEntryFull,
+                    arguments = listOf(navArgument("entryId") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    } )
+                ) {
+                    backStackEntry -> val entryId = backStackEntry.arguments?.getInt("entryId")
+                    EditEntryScreen(
+                        onSaveNewEntry = { navController.navigate(Routes.MainApp) },
+                        onSaveEdits = { selectedId -> navController.navigate("${Routes.MainApp}?id=$selectedId") },
+                        entry = if (entryId != null) Native.storageGetEntry(entryId) ?: emptyPasswdEntry() else emptyPasswdEntry()
+                    )
                 }
             }
         }

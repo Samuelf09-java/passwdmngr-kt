@@ -1,10 +1,12 @@
 package com.samuelf09.passwdmngr.viewmodel
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.samuelf09.passwdmngr.Native
+import com.samuelf09.passwdmngr.emptyPasswdEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -43,6 +45,12 @@ class LoginViewModel : ViewModel() {
     fun onLoginClicked() {
         if (!isValidInput(username) || !isValidInput(password) || !Native.verifyAccount(username, password)) {
             errorMessage = "Incorrect username or password!"
+            return
+        }
+        Native.setUsername(username)
+        Native.setTmpPasswd(password)
+        if (!Native.storageReadUserVault()) {
+            errorMessage = "Failed to read user vault!"
             return
         }
         _navigation.value = NavigationEvent.ToMain
