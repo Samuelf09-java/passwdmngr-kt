@@ -1,15 +1,19 @@
 package com.samuelf09.passwdmngr.viewmodel
 
+import android.app.Application
+import android.view.View
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import com.samuelf09.passwdmngr.Native
 import com.samuelf09.passwdmngr.PasswdEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class MainViewModel : ViewModel() {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     var selectedEntryId by mutableStateOf<Int?>(null)
     private set
@@ -18,6 +22,9 @@ class MainViewModel : ViewModel() {
     private set
 
     var entries: Array<PasswdEntry> = Native.storageGetEntries() ?: emptyArray()
+
+    private val _licenseText = MutableStateFlow<String?>(null)
+    val licenseText = _licenseText
 
     sealed class NavigationEvent {
         data object ToAddEntry: NavigationEvent()
@@ -45,4 +52,55 @@ class MainViewModel : ViewModel() {
     fun addEntry() {
         _navigation.value = NavigationEvent.ToAddEntry
     }
+
+    // Menu callbacks
+
+    fun onLogoutClicked() {
+        Native.logout()
+        _navigation.value = NavigationEvent.ToLogin
+    }
+
+    fun onExportClicked() {
+
+    }
+
+    fun onImportClicked() {
+
+    }
+
+    fun onBackupClicked() {
+
+    }
+
+    fun onRestoreBackupClicked() {
+
+    }
+
+    fun onViewLogClicked() {
+
+    }
+
+    fun onClearLogClicked() {
+
+    }
+
+    fun onChangePasswordClicked() {
+
+    }
+
+    fun onDeleteAccountClicked() {
+
+    }
+
+    fun onAboutClicked() {
+        _licenseText.value = getApplication<Application>().assets.open("LICENSE.txt")
+            .bufferedReader()
+            .use { it.readText() }
+
+    }
+
+    fun onAboutDestroyed() {
+        _licenseText.value = null
+    }
+
 }

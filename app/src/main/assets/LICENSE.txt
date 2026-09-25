@@ -1,0 +1,17 @@
+This software is licensed under the Apache License, Version 2.0.
+Copyright (c) 2026 Samuel Field
+
+The full license text is available in the project repository:
+https://github.com/Samuelf09-java/passwdmngr-kt?tab=Apache-2.0-1-ov-file
+
+Third-Party Licenses
+--------------------
+This software includes third-party components:
+
+- cJSON (MIT License)
+  Copyright (c) 2009-2020 Dave Gamble and cJSON contributors
+  See third-party-licenses/cJSON-LICENSE.txt
+
+- libsodium & headers (ISC License)
+  Copyright (c) 2013-2020 Frank Denis
+  See third-party-licenses/libsodium-LICENSE.txt

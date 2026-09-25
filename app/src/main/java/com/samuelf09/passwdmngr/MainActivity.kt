@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -43,15 +44,12 @@ class MainActivity : ComponentActivity() {
 
         // disable autofill so password is not saved to regular autofill data
         window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         if (!Native.appInit(this.filesDir.absolutePath)) {
             Log.e("passwdmngr", "FATAL: App init failed!")
+            Log.e("passwdmngr", Native.getError())
             Toast.makeText(this, "Initialization failed!", Toast.LENGTH_LONG).show()
-            finishAndRemoveTask()
-        }
-        if (!Native.loadAccounts()) {
-            Log.e("passwdmngr", "FATAL: Failed to load accounts!")
-            Toast.makeText(this, "Failed to load accounts!", Toast.LENGTH_LONG).show()
             finishAndRemoveTask()
         }
         super.onCreate(savedInstanceState)

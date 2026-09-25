@@ -67,23 +67,18 @@ class EditEntryViewModel : ViewModel() {
         }
 
         val saveEntry = PasswdEntry(id, service, username, password, notes)
-        if (add && Native.isDuplicateEntry(saveEntry)) {
-            errorMessage = "Duplicate service!"
-            return
-        }
 
         if (add) {
             if (!Native.addEntry(saveEntry)) {
-                errorMessage = "Failed to add entry! (internal error)"
+                errorMessage = Native.getError()
                 return
             }
-            Log.d("passwdmngr", "Created entry $saveEntry")
             _navigation.value = NavigationEvent.ToMain
             return
         }
 
         if (!Native.updateEntry(id, saveEntry)) {
-            errorMessage = "Failed to save edits! (internal error)"
+            errorMessage = Native.getError()
             return
         }
         _navigation.value = NavigationEvent.ToMainWithId

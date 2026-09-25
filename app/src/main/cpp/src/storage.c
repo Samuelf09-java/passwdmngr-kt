@@ -3,6 +3,7 @@
 #include "util.h"
 #include "cJSON.h"
 #include "sodium.h"
+#include "passwdmngr.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,9 +77,9 @@ bool load_accounts() {
 
     if (memcmp(hdr->hash, hash, HASH_LEN)) {
         util_log(LOG_FATAL, "Could not verify accounts.bin integrity; hashes do not match!");
-        // free(hash);
-        // free(accounts_buf);
-        // return false;
+         free(hash);
+         free(accounts_buf);
+         return false;
     }
 
     free(hash);
@@ -865,7 +866,7 @@ bool storage_write_vault(char *vault_path, PasswdEntry *entries, int num_entries
 
     uint32_t clen = 0;
     if (!encrypt_entries(entries, num_entries, salt, &ciphertext, (int32_t *)&clen, &nonce, &tag)) {
-        util_log(LOG_ERROR, "Failed to encrypt user vault");
+        NATIVE_ERROR("Failed to encrypt user vault");
         free(hdr);
         return false;
     }
@@ -887,6 +888,7 @@ bool storage_write_vault(char *vault_path, PasswdEntry *entries, int num_entries
     if (!util_check_ptr(hash, "Failed to hash vault data for writing")) {
         free(write_buf);
         free(hdr);
+        NATIVE_ERROR("Failed to hash vault data for writing");
         return false;
     }
 
@@ -895,7 +897,7 @@ bool storage_write_vault(char *vault_path, PasswdEntry *entries, int num_entries
 
     FILE *fp = fopen(vault_path, "wb");
     if (!fp) {
-        util_log(LOG_ERROR, "Failed to open/create vault for writing");
+        NATIVE_ERROR("Failed to open/create vault for writing");
         free(write_buf);
         free(hdr);
         return false;
@@ -934,6 +936,7 @@ int storage_get_next_id() {
         current_id = MAX(current_id, i[entries].id); // fun c tricks with arrays :)
 
     // run id 'defrag' routine to consolidate ids if they have run excessively high
+    //   (very unlikely but not impossible for large-scale use)
     if (current_id > num_entries * 3 || (num_entries > 10000 && current_id > num_entries + 200)) {
         for (int i = 0; i < num_entries; i++)
             entries[i].id = i + 1;
@@ -958,12 +961,12 @@ bool add_entry(PasswdEntry *entry) {
 
     for (int i = 0; i < num_entries; i++) {
         if (!strcmp(entries[i].service, entry->service)) {
-            util_log(LOG_ERROR, "Duplicate service name");
+            NATIVE_ERROR("Duplicate service");
             return false;
         }
 
         if (entries[i].id == entry->id) {
-            util_log(LOG_ERROR, "Duplicate id");
+            NATIVE_ERROR("Duplicate id");
             return false;
         }
     }
@@ -984,7 +987,7 @@ bool add_entry(PasswdEntry *entry) {
     qsort(entries, num_entries, sizeof(PasswdEntry), compare_entries_by_service);
 
     if (!storage_write_user_vault()) {
-        util_log(LOG_ERROR, "Failed to write expanded entry list; this session will not be saved properly");
+        NATIVE_ERROR("Failed to write expanded entry list");
         return false;
     }
 
@@ -1002,7 +1005,7 @@ bool delete_entry(int id) {
     }
 
     if (index < 0) {
-        util_log(LOG_ERROR, "Failed to delete entry: id not found");
+        NATIVE_ERROR("Failed to delete entry: id not found");
         return false;
     }
 
@@ -1027,7 +1030,7 @@ bool delete_entry(int id) {
     }
 
     if (!storage_write_user_vault()) {
-        util_log(LOG_ERROR, "Failed to write updated user vault");
+        NATIVE_ERROR("Failed to update user vault");
         return false;
     }
 
@@ -1044,13 +1047,13 @@ bool update_entry(int id, PasswdEntry *new_entry) {
         }
 
         if (!strcmp(entries[i].service, new_entry->service)) {
-            util_log(LOG_ERROR, "Duplicate service name");
+            NATIVE_ERROR("Service name conflicts with existing service!");
             return false;
         }
     }
 
     if (index < 0) {
-        util_log(LOG_ERROR, "Failed to update entry: id not found");
+        NATIVE_ERROR("Failed to update entry: id not found");
         return false;
     }
 
@@ -1062,7 +1065,7 @@ bool update_entry(int id, PasswdEntry *new_entry) {
     qsort(entries, num_entries, sizeof(PasswdEntry), compare_entries_by_service);
 
     if (!storage_write_user_vault()) {
-        util_log(LOG_ERROR, "Failed to update user vault; edits will not be saved to disk");
+        NATIVE_ERROR("Failed to update user vault; edits will not be saved to disk");
         return false;
     }
 

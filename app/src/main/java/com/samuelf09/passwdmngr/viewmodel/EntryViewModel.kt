@@ -47,7 +47,7 @@ class EntryViewModel: ViewModel() {
 
     fun deleteEntry() {
         if (!Native.deleteEntry(entry!!.id)) {
-            errorMessage = "Failed to delete entry!"
+            errorMessage = Native.getError()
             return
         }
         _navigation.value = NavigationEvent.ToMain

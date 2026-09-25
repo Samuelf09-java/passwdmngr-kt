@@ -1,6 +1,5 @@
 package com.samuelf09.passwdmngr.ui.screens
 
-import android.util.Log
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
@@ -19,26 +19,36 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.samuelf09.passwdmngr.PasswdEntry
 import com.samuelf09.passwdmngr.viewmodel.MainViewModel
 
 @Composable
 fun SidebarItem(
-    entry: PasswdEntry,
+    entryName: String,
     selected: Boolean,
     onClick: () -> Unit) {
     val background = if (selected) {
@@ -55,7 +65,7 @@ fun SidebarItem(
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Text(
-            text = entry.service ?: "",
+            text = entryName,
             style = MaterialTheme.typography.bodyLarge,
             color = if (selected)
                 MaterialTheme.colorScheme.primary
@@ -83,6 +93,38 @@ fun MainScreen(
         targetValue = if (collapsed) 0.dp else LocalConfiguration.current.screenWidthDp.dp,
         label = "sidebarWidth"
     )
+
+    val licenseText by viewModel.licenseText.collectAsState()
+
+    licenseText?.let {
+        AlertDialog(
+            onDismissRequest = viewModel::onAboutDestroyed,
+            confirmButton = {
+                TextButton(onClick = viewModel::onAboutDestroyed) {
+                    Text("Close")
+                }
+            },
+            title = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Licenses")
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(licenseText!!)
+                }
+            }
+        )
+    }
+
 
     val navEvent by viewModel.navigation.collectAsState()
 
@@ -160,7 +202,7 @@ fun MainScreen(
                         val selectedEntryId = viewModel.selectedEntryId
                         entries.forEach { entry ->
                             SidebarItem(
-                                entry = entry,
+                                entryName = entry.service ?: "",
                                 selected = entry.id == selectedEntryId,
                                 onClick = {
                                     viewModel.selectEntry(entry.id)
@@ -191,6 +233,104 @@ fun MainScreen(
                 .padding(16.dp)
         ) {
             Icon(Icons.Default.Menu, contentDescription = "Toggle sidebar")
+        }
+
+        var showMenu by remember { mutableStateOf(false) }
+
+        Column(modifier = Modifier.align(Alignment.TopEnd)) {
+
+            IconButton(
+                onClick = { showMenu = true },
+                modifier = Modifier
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+            }
+
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Logout") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onLogoutClicked()
+                    }
+                )
+
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
+                DropdownMenuItem(
+                    text = { Text("Export entries") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onExportClicked()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Import entries") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onImportClicked()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Backup vault") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onBackupClicked()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Restore from backup") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onRestoreBackupClicked()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("View log") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onViewLogClicked()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Clear log") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onClearLogClicked()
+                    }
+                )
+
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
+                DropdownMenuItem(
+                    text = { Text("Change password") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onChangePasswordClicked()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Delete account") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onDeleteAccountClicked()
+                    }
+                )
+
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
+                DropdownMenuItem(
+                    text = { Text("About") },
+                    onClick = {
+                        showMenu = false
+                        viewModel.onAboutClicked()
+                    }
+                )
+            }
         }
     }
 }

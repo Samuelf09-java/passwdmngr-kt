@@ -43,14 +43,8 @@ class LoginViewModel : ViewModel() {
     }
 
     fun onLoginClicked() {
-        if (!isValidInput(username) || !isValidInput(password) || !Native.verifyAccount(username, password)) {
-            errorMessage = "Incorrect username or password!"
-            return
-        }
-        Native.setUsername(username)
-        Native.setTmpPasswd(password)
-        if (!Native.storageReadUserVault()) {
-            errorMessage = "Failed to read user vault!"
+        if (!Native.login(username, password)) {
+            errorMessage = Native.getError()
             return
         }
         _navigation.value = NavigationEvent.ToMain

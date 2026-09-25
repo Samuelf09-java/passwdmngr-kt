@@ -200,3 +200,15 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+Third-Party Licenses
+--------------------
+This software includes third-party components:
+
+- cJSON (MIT License)
+  Copyright (c) 2009-2020 Dave Gamble and cJSON contributors
+  See third-party-licenses/cJSON-LICENSE.txt
+
+- libsodium & headers (ISC License)
+  Copyright (c) 2013-2020 Frank Denis
+  See third-party-licenses/libsodium-LICENSE.txt
